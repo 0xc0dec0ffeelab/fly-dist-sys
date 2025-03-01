@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace fly_dist_sys._1_Echo
 {
-    public class EchoMessageBody : MessageBody
+    public class MessageBody_1 : MessageBody
     {
         [JsonPropertyName("echo")]
         public required string Echo { get; set; }

@@ -10,10 +10,13 @@ namespace fly_dist_sys._1_Echo
     /*
      * 
      // build PublishSingleFile
-     dotnet publish -r linux-x64 -c Release --self-contained true -p:PublishSingleFile=true -o publish
-     
+     dotnet publish -r linux-x64 -c Release --self-contained true -p:PublishSingleFile=true -p:DefineConstants=Challenge_1 -o publish
+
      // PowerShell
      docker run --rm -v  $HOME\fly-dist-sys\fly-dist-sys\publish:/mnt ghcr.io/0xc0dec0ffeelab/maelstrom:latest test -w echo --bin /mnt/fly-dist-sys --node-count 1 --time-limit 10
+
+
+
 
      // Git Bash
      MSYS_NO_PATHCONV=1 docker run --rm -v $HOME/fly-dist-sys/fly-dist-sys/publish:/maelstrom/mnt ghcr.io/0xc0dec0ffeelab/maelstrom:latest test -w echo --bin \
@@ -31,7 +34,7 @@ namespace fly_dist_sys._1_Echo
 {"src":"c1","dest":"n1","body":{"msg_id":1,"type":"echo","echo":"Please echo 45"}}
      
      */
-    public static class Echo
+    public static class Challenge_1
     {
         public static async Task TestAsync()
         {
@@ -42,7 +45,7 @@ namespace fly_dist_sys._1_Echo
                 try
                 {
                     Console.Error.WriteLine("Handling echo message");
-                    var body = JsonSerializer.Deserialize<EchoMessageBody>(message.Body)!;
+                    var body = JsonSerializer.Deserialize<MessageBody_1>(message.Body)!;
                     if (body == default) throw new ArgumentNullException("Invalid echo message body");
                     body.Type = "echo_ok";
                     await node.ReplyAsync(message, body);
