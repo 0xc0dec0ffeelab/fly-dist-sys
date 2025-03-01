@@ -13,15 +13,16 @@ namespace fly_dist_sys
         public required string Type { get; set; }
 
         [JsonPropertyName("msg_id")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public int MsgId { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? MsgId { get; set; }
 
         [JsonPropertyName("in_reply_to")]
-        public int InReplyTo { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? InReplyTo { get; set; }
 
         [JsonPropertyName("code")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
-        public int Code { get; set; }
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? Code { get; set; }
 
         [JsonPropertyName("text")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

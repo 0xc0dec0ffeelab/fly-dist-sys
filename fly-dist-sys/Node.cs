@@ -26,7 +26,6 @@ namespace fly_dist_sys
 
         public Node()
         {
-            //RegisterHandler("init", HandleInitMessageAsync);
         }
 
         private async Task HandleInitMessageAsync(Message message)
@@ -42,31 +41,15 @@ namespace fly_dist_sys
             {
                 await hanadler(message);
             }
-            
-            await ReplyAsync(message, new MessageBody { Type = "init_ok" });
+
+            var resBody = new MessageBody
+            {
+                Type = "init_ok",
+                InReplyTo = body.MsgId
+            };
+            await SendAsync(message.Src, resBody);
         }
 
-        public async Task ReplyAsync<T>(Message request, T body) where T : MessageBody
-        {
-            var reqBody = JsonSerializer.Deserialize<T>(request.Body);
-            if (reqBody == null) throw new Exception("Invalid request T body");
-
-            body.InReplyTo = reqBody.MsgId;
-
-            await SendAsync(request.Src, body);
-
-        }
-
-        public async Task ReplyAsync(Message request, MessageBody body)
-        {
-            var reqBody = JsonSerializer.Deserialize<MessageBody>(request.Body);
-            if (reqBody == null) throw new Exception("Invalid request message body");
-
-            body.InReplyTo = reqBody.MsgId;
-            
-            await SendAsync(request.Src, body);
-
-        }
         public async Task ReplyAsync(Message request, RPCError error)
         {
             var reqBody = JsonSerializer.Deserialize<MessageBody>(request.Body);
@@ -222,9 +205,9 @@ namespace fly_dist_sys
                     var body = JsonSerializer.Deserialize<MessageBody>(message.Body);
                     if (body == null) continue;
 
-                    if (body.InReplyTo != 0)
+                    if (body.InReplyTo.HasValue && body.InReplyTo != 0)
                     {
-                        if (_callbacks.TryRemove(body.InReplyTo, out var callback) && callback != null)
+                        if (_callbacks.TryRemove(body.InReplyTo.Value, out var callback) && callback != null)
                         {
                             _runningTasks.Add(HandleCallbackAsync(callback, message));
                         }

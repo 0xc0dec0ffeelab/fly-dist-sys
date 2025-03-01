@@ -44,11 +44,11 @@ namespace fly_dist_sys._1_Echo
             {
                 try
                 {
-                    Console.Error.WriteLine("Handling echo message");
                     var body = JsonSerializer.Deserialize<MessageBody_1>(message.Body)!;
                     if (body == default) throw new ArgumentNullException("Invalid echo message body");
                     body.Type = "echo_ok";
-                    await node.ReplyAsync(message, body);
+                    body.InReplyTo = body.MsgId;
+                    await node.SendAsync(message.Src, body);
                 }
                 catch (Exception ex) 
                 {
