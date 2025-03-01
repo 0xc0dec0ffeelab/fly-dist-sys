@@ -27,7 +27,17 @@ namespace fly_dist_sys
         public Node()
         {
         }
+        public string GetUniqueId()
+        {
+            long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000000
+                         + (DateTime.UtcNow.Ticks % TimeSpan.TicksPerMillisecond) * 100;
 
+            Span<byte> buffer = stackalloc byte[8];
+            RandomNumberGenerator.Fill(buffer);
+            long randomNum = BitConverter.ToInt64(buffer);
+
+            return $"{timestamp}{randomNum}";
+        }
         private async Task HandleInitMessageAsync(Message message)
         {
             var body = JsonSerializer.Deserialize<InitMessageBody>(message.Body);
