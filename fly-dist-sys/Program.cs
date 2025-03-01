@@ -1,39 +1,38 @@
 ﻿using fly_dist_sys._1_Echo;
+using fly_dist_sys._2_Unique_ID_Generation;
 using System;
 
 // no ICU（International Components for Unicode）
 Environment.SetEnvironmentVariable("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT", "1", EnvironmentVariableTarget.Process);
 
-await Echo.TestAsync();
-
-//#if CHALLENGE1_ECHO //CHALLENGE1_Echo
-//        Console.Error.WriteLine("This is AppA");
-//#elif CHALLENGE2_Unique_ID_Generation
-//        Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE3a_Single_Node_Broadcast
-//        Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE3b_Multi_Node_Broadcast
-//        Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE3c_Fault_Tolerant_Broadcast
-//       Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE3d_Efficient_Broadcast_Part1
-//       Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE3e_Efficient_Broadcast_Part2
-//       Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE4_Grow_Only_Counter
-//        Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE5a_Single_Node_Kafka_Style_Log
-//       Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE5b_Multi_Node_Kafka_Style_Log
-//       Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE5c_Efficient_Kafka_Style_Log
-//      Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE6a_Single_Node_Totally_Available_Transactions
-//    Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE6b_Totally_Available_Read_Uncommitted_Transactions
-//      Console.Error.WriteLine("This is AppB");
-//#elif CHALLENGE6c_Totally_Available_Read_Committed_Transactions
-//     Console.Error.WriteLine("This is AppB");
-//#else
-//Console.Error.WriteLine("This is AppB");
-//#endif
+#if Challenge_1
+  await Challenge_1.TestAsync();
+#elif Challenge_2
+  await Challenge_2.TestAsync();
+#elif Challenge_3a
+  await Challenge_3a.TestAsync();
+#elif Challenge_3b
+  await Challenge_3b.TestAsync();
+#elif Challenge_3c
+  await Challenge_3c.TestAsync();
+#elif Challenge_3d
+  await Challenge_3d.TestAsync();
+#elif Challenge_3e
+  await Challenge_3e.TestAsync();
+#elif Challenge_4
+  await Challenge_4.TestAsync();
+#elif Challenge_5a
+  await Challenge_5a.TestAsync();
+#elif Challenge_5b
+  await Challenge_5b.TestAsync();
+#elif Challenge_5c
+  await Challenge_5c.TestAsync();
+#elif Challenge_6a
+  await Challenge_6a.TestAsync();
+#elif Challenge_6b
+  await Challenge_6b.TestAsync();
+#elif Challenge_6c
+  await Challenge_6c.TestAsync();
+#else
+  Console.Error.WriteLine("Wrong Challenge Constant");
+#endif
