@@ -31,7 +31,6 @@ namespace fly_dist_sys
 
         private async Task HandleInitMessageAsync(Message message)
         {
-            Console.Error.WriteLine($"HandleInitMessageAsync: ==============> Before");
             var body = JsonSerializer.Deserialize<InitMessageBody>(message.Body);
 
             if (body == default) throw new ArgumentNullException("Invalid init message body");
@@ -49,7 +48,6 @@ namespace fly_dist_sys
 
         public async Task ReplyAsync<T>(Message request, T body) where T : MessageBody
         {
-            Console.Error.WriteLine($"ReplyAsync<T>: ==============> Before");
             var reqBody = JsonSerializer.Deserialize<T>(request.Body);
             if (reqBody == null) throw new Exception("Invalid request T body");
 
@@ -61,7 +59,6 @@ namespace fly_dist_sys
 
         public async Task ReplyAsync(Message request, MessageBody body)
         {
-            Console.Error.WriteLine($"ReplyAsync: ==============> Before");
             var reqBody = JsonSerializer.Deserialize<MessageBody>(request.Body);
             if (reqBody == null) throw new Exception("Invalid request message body");
 
@@ -72,7 +69,6 @@ namespace fly_dist_sys
         }
         public async Task ReplyAsync(Message request, RPCError error)
         {
-            Console.Error.WriteLine($"ReplyAsync RPCError: ==============> Before");
             var reqBody = JsonSerializer.Deserialize<MessageBody>(request.Body);
             
             if (reqBody == null) throw new Exception("Invalid request message body");
@@ -165,7 +161,6 @@ namespace fly_dist_sys
         {
             int msgID = Interlocked.Increment(ref _nextMessageId);
             _callbacks.TryAdd(msgID, callback);
-            Console.Error.WriteLine($"RPCAsync : ==============> Before");
             var bodyDict = JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(body));
             if (bodyDict == null) return false;
             
@@ -216,25 +211,16 @@ namespace fly_dist_sys
             string? line;
             while ((line = await Console.In.ReadLineAsync()) != null)
             {
-                Console.Error.WriteLine($"{line}");
-                //continue;
+                //Console.Error.WriteLine($"{line}");
 
                 try
                 {
-                    Console.Error.WriteLine($"message: ==============> Before");
                     var message = JsonSerializer.Deserialize<Message>(line);
-                    Console.Error.WriteLine($"message: ==============> After");
 
                     if (message == null) continue;
                     
-                    Console.Error.WriteLine($"message: ==============> {message}");
-
                     var body = JsonSerializer.Deserialize<MessageBody>(message.Body);
                     if (body == null) continue;
-
-                    Console.Error.WriteLine($"body: ==============> {body}");
-
-                    //Console.Error.WriteLine($"Received {JsonSerializer.Serialize(message)}");
 
                     if (body.InReplyTo != 0)
                     {
@@ -251,7 +237,6 @@ namespace fly_dist_sys
                     }
                     else if (_handlers.TryGetValue(body.Type, out handler) == false)
                     {
-                        //Console.Error.WriteLine($"No handler for {line}");
                         continue;
                     }
 
