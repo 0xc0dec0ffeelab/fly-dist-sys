@@ -40,19 +40,20 @@ namespace fly_dist_sys._1_Echo
         {
             var node = new Node();
 
-            node.RegisterHandler("echo", async message =>
+            node.RegisterHandler("echo", message =>
             {
                 try
                 {
                     var body = JsonSerializer.Deserialize<MessageBody_1>(message.Body)!;
-                    if (body == default) throw new ArgumentNullException("Invalid echo message body");
+                    if (body == default)  return Task.FromException(new ArgumentNullException("Invalid echo message body"));
                     body.Type = "echo_ok";
                     body.InReplyTo = body.MsgId;
-                    await node.SendAsync(message.Src, body);
+                    return node.SendAsync(message.Src, body);
                 }
                 catch (Exception ex) 
                 {
-                    Console.Error.WriteLine($"RegisterHandler {ex}");
+                    //Console.Error.WriteLine($"RegisterHandler {ex}");
+                    return Task.FromException(ex);
                 }
             });
 

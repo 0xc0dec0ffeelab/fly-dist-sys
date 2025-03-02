@@ -20,13 +20,56 @@ namespace fly_dist_sys
 
         readonly ConcurrentDictionary<int, Func<Message, Task>> _callbacks = new();
         
-        readonly List<Task> _runningTasks = new();
+        readonly List<Task> _messageTasks = new();
+        readonly List<Task> _callbackTasks = new();
+        readonly List<Task> _messageTasksToWait = new();
+        readonly List<Task> _callbackTasksToWait = new();
+        readonly SemaphoreSlim _messageTaskSemaphore = new(1, 1);
+        readonly SemaphoreSlim _callbackTaskSemaphore = new(1, 1);
 
-        private static readonly SemaphoreSlim _semaphore = new(1, 1);
-
+        static readonly SemaphoreSlim _sendSemaphore = new(1, 1);
+        
+       
         public Node()
         {
         }
+        private async Task ProcessTaskListAsync(List<Task> taskList, List<Task> tasksToWait, SemaphoreSlim semaphore)
+        {
+            while (true)
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    taskList.RemoveAll(task => task.IsCompleted);
+                    tasksToWait.Clear();
+                    tasksToWait.AddRange(taskList);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+
+                if (tasksToWait.Count > 0)
+                {
+                    await Task.WhenAll(tasksToWait);
+                }
+
+                await Task.Delay(1000);
+            }
+        }
+        private async Task AddTaskAsync(List<Task> taskList, SemaphoreSlim semaphore, Task task)
+        {
+            await semaphore.WaitAsync();
+            try
+            {
+                taskList.Add(task);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
         public string GetUniqueId()
         {
             long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * 1000000
@@ -38,7 +81,7 @@ namespace fly_dist_sys
 
             return $"{timestamp}{randomNum}";
         }
-        private async Task HandleInitMessageAsync(Message message)
+        private Task HandleInitMessageAsync(Message message)
         {
             var body = JsonSerializer.Deserialize<InitMessageBody>(message.Body);
 
@@ -49,7 +92,7 @@ namespace fly_dist_sys
 
             if (_handlers.TryGetValue("init", out var hanadler))
             {
-                await hanadler(message);
+                return hanadler(message);
             }
 
             var resBody = new MessageBody
@@ -57,10 +100,10 @@ namespace fly_dist_sys
                 Type = "init_ok",
                 InReplyTo = body.MsgId
             };
-            await SendAsync(message.Src, resBody);
+            return SendAsync(message.Src, resBody);
         }
 
-        public async Task ReplyAsync(Message request, RPCError error)
+        public Task ReplyAsync(Message request, RPCError error)
         {
             var reqBody = JsonSerializer.Deserialize<MessageBody>(request.Body);
             
@@ -74,43 +117,73 @@ namespace fly_dist_sys
                 InReplyTo = reqBody.MsgId
             };
 
-            await SendAsync(request.Src, body);
+            return SendAsync(request.Src, body);
 
         }
-        public async Task SendAsync(string? dest, object body, CancellationToken cancellationToken = default)
+        public Task SendAsync(string? dest, object body, CancellationToken cancellationToken = default)
         {
-            try
+            var message = new Message
             {
-                var message = new Message
-                {
-                    Src = NodeId,
-                    Dest = dest,
-                    Body = JsonSerializer.SerializeToElement(body)
-                };
+                Src = NodeId,
+                Dest = dest,
+                Body = JsonSerializer.SerializeToElement(body)
+            };
 
-                var jsonMessage = JsonSerializer.Serialize(message);
+            var jsonMessage = JsonSerializer.Serialize(message);
 
-                await _semaphore.WaitAsync(cancellationToken);
-                try
+            return _sendSemaphore.WaitAsync(cancellationToken)
+                .ContinueWith(_ =>
                 {
-                    await Console.Out.WriteLineAsync(jsonMessage.AsMemory(), cancellationToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    //Console.Error.WriteLine("SendAsync operation was canceled.");
-                    throw;
-                }
-                finally
-                {
-                    _semaphore.Release();
-                }
-
-            }
-            catch (Exception ex)
-            {
-                //Console.Error.WriteLine($"Error sending message: {ex.Message}");
-            }
+                    try
+                    {
+                        return Console.Out.WriteLineAsync(jsonMessage.AsMemory(), cancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    finally
+                    {
+                        _sendSemaphore.Release();
+                    }
+                }, cancellationToken).Unwrap();
         }
+
+
+        //public async Task SendAsync(string? dest, object body, CancellationToken cancellationToken = default)
+        //{
+        //    try
+        //    {
+        //        var message = new Message
+        //        {
+        //            Src = NodeId,
+        //            Dest = dest,
+        //            Body = JsonSerializer.SerializeToElement(body)
+        //        };
+
+        //        var jsonMessage = JsonSerializer.Serialize(message);
+
+        //        await _sendSemaphore.WaitAsync(cancellationToken);
+        //        try
+        //        {
+        //            await Console.Out.WriteLineAsync(jsonMessage.AsMemory(), cancellationToken);
+        //        }
+        //        catch (OperationCanceledException)
+        //        {
+        //            //Console.Error.WriteLine("SendAsync operation was canceled.");
+        //            throw;
+        //        }
+        //        finally
+        //        {
+        //            _sendSemaphore.Release();
+        //        }
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        //Console.Error.WriteLine($"Error sending message: {ex.Message}");
+        //    }
+        //}
 
         public void RegisterHandler(string type, Func<Message, Task> handler)
         {
@@ -121,32 +194,33 @@ namespace fly_dist_sys
         {
             _callbacks.TryAdd(msgId, callback);
         }
-        private async Task HandleCallbackAsync(Func<Message, Task> callback, Message message)
+        private Task HandleCallbackAsync(Func<Message, Task> callback, Message message)
         {
             try
             {
-                await callback(message);
+                return callback(message);
             }
             catch (Exception ex)
             {
                 //Console.Error.WriteLine($"Callback error: {ex}");
+                return Task.FromException(ex);
             }
         }
-        private async Task HandleMessageAsync(Func<Message, Task> handler, Message message)
+        private Task HandleMessageAsync(Func<Message, Task> handler, Message message)
         {
             try
             {
-                await handler(message);
+                return handler(message);
             }
             catch (RPCError ex)
             {
-                await ReplyAsync(message, ex);
+                return ReplyAsync(message, ex);
             }
             catch (Exception ex)
             {
                 //Console.Error.WriteLine($"Exception handling {JsonSerializer.Serialize(message)}:\n{ex}");
                 // Crash = 13
-                await ReplyAsync(message, new RPCError(13, ex.Message));
+                return ReplyAsync(message, new RPCError(13, ex.Message));
             }
         }
 
@@ -201,6 +275,9 @@ namespace fly_dist_sys
 
         public async Task RunAsync()
         {
+            _ = Task.Run(() => ProcessTaskListAsync(_messageTasks, _messageTasksToWait, _messageTaskSemaphore));
+            _ = Task.Run(() => ProcessTaskListAsync(_callbackTasks, _callbackTasksToWait, _callbackTaskSemaphore));
+
             string? line;
             while ((line = await Console.In.ReadLineAsync()) != null)
             {
@@ -219,7 +296,8 @@ namespace fly_dist_sys
                     {
                         if (_callbacks.TryRemove(body.InReplyTo.Value, out var callback) && callback != null)
                         {
-                            _runningTasks.Add(HandleCallbackAsync(callback, message));
+                            await AddTaskAsync(_callbackTasks, _callbackTaskSemaphore, HandleCallbackAsync(callback, message));
+                            continue;
                         }
                     }
 
@@ -233,17 +311,13 @@ namespace fly_dist_sys
                         continue;
                     }
 
-                    _runningTasks.Add(HandleMessageAsync(handler, message));
+                    await AddTaskAsync(_messageTasks, _messageTaskSemaphore ,HandleMessageAsync(handler, message));
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine($"Error processing input: {ex}");
                 }
             }
-
-            await Task.WhenAll(_runningTasks);
-            // clear completed tasks
-            _runningTasks.RemoveAll(task => task.IsCompleted);
         }
 
     }
