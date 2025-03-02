@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace fly_dist_sys
@@ -57,7 +58,25 @@ namespace fly_dist_sys
                 await Task.Delay(1000);
             }
         }
-        private async Task AddTaskAsync(List<Task> taskList, SemaphoreSlim semaphore, Task task)
+        public async Task UpdateConcurrentDictionaryListAsync<T, K>(ConcurrentDictionary<T, List<K>> fromDict, ConcurrentDictionary<T, List<K>> toDict, SemaphoreSlim semaphore) where T : notnull
+        {
+            ArgumentNullException.ThrowIfNull(fromDict);
+            ArgumentNullException.ThrowIfNull(toDict);
+
+            await semaphore.WaitAsync();
+            try
+            {
+                foreach (var kvp in fromDict)
+                {
+                    toDict[kvp.Key] = new List<K>(kvp.Value);
+                }
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+        public async Task AddTaskAsync<T>(List<T> taskList, SemaphoreSlim semaphore, T task)
         {
             await semaphore.WaitAsync();
             try
@@ -69,6 +88,18 @@ namespace fly_dist_sys
                 semaphore.Release();
             }
         }
+        //private async Task AddTaskAsync(List<Task> taskList, SemaphoreSlim semaphore, Task task)
+        //{
+        //    await semaphore.WaitAsync();
+        //    try
+        //    {
+        //        taskList.Add(task);
+        //    }
+        //    finally
+        //    {
+        //        semaphore.Release();
+        //    }
+        //}
 
         public string GetUniqueId()
         {
@@ -297,8 +328,8 @@ namespace fly_dist_sys
                         if (_callbacks.TryRemove(body.InReplyTo.Value, out var callback) && callback != null)
                         {
                             await AddTaskAsync(_callbackTasks, _callbackTaskSemaphore, HandleCallbackAsync(callback, message));
-                            continue;
                         }
+                        continue;
                     }
 
                     Func<Message, Task>? handler = default;

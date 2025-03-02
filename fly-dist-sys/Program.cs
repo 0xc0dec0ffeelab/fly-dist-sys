@@ -1,10 +1,10 @@
 ﻿using fly_dist_sys._1_Echo;
 using fly_dist_sys._2_Unique_ID_Generation;
+using fly_dist_sys._3_Broadcast;
 using System;
 
 // no ICU（International Components for Unicode）
 Environment.SetEnvironmentVariable("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT", "1", EnvironmentVariableTarget.Process);
-
 #if Challenge_1
   await Challenge_1.TestAsync();
 #elif Challenge_2
@@ -34,5 +34,5 @@ Environment.SetEnvironmentVariable("DOTNET_SYSTEM_GLOBALIZATION_INVARIANT", "1",
 #elif Challenge_6c
   await Challenge_6c.TestAsync();
 #else
-  Console.Error.WriteLine("Wrong Challenge Constant");
+Console.Error.WriteLine("Wrong Challenge Constant");
 #endif
