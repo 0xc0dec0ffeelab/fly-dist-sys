@@ -21,23 +21,24 @@ namespace fly_dist_sys._2_Unique_ID_Generation
         {
             var node = new Node();
 
-            node.RegisterHandler("generate", async message =>
+            node.RegisterHandler("generate", message =>
             {
                 try
                 {
                     var body = JsonSerializer.Deserialize<MessageBody>(message.Body)!;
-                    if (body == default) throw new ArgumentNullException("Invalid generate message body");
+                    if (body == default) return Task.FromException(new ArgumentNullException("Invalid generate message body"));
                     MessageBody_2 resbody = new()
                     {
                         Id = node.GetUniqueId(),
                         InReplyTo = body.MsgId,
                         Type = "generate_ok"
                     };
-                    await node.SendAsync(message.Src, resbody);
+                    return node.SendAsync(message.Src, resbody);
                 }
                 catch (Exception ex)
                 {
                     Console.Error.WriteLine($"RegisterHandler {ex}");
+                    return Task.FromException(ex);
                 }
             });
 
