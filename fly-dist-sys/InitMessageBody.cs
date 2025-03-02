@@ -10,8 +10,8 @@ namespace fly_dist_sys
     public class InitMessageBody : MessageBody
     {
         [JsonPropertyName("node_id")]
-        public string? Id { get; set; }
+        public string? NodeId { get; set; }
         [JsonPropertyName("node_ids")]
-        public List<string>? Ids { get; set; }
+        public List<string>? NodeIds { get; set; }
     }
 }

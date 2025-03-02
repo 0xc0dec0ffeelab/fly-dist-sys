@@ -87,8 +87,8 @@ namespace fly_dist_sys
 
             if (body == default) throw new ArgumentNullException("Invalid init message body");
 
-            NodeIds = body.Ids;
-            NodeId = body.Id;
+            NodeIds = body.NodeIds;
+            NodeId = body.NodeId;
 
             if (_handlers.TryGetValue("init", out var hanadler))
             {
